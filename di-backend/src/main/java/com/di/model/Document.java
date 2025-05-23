@@ -35,7 +35,7 @@ public class Document {
     @Column(nullable = false)
     private String author;
 
-    @Lob
+    //@Lob
     @Column(columnDefinition = "TEXT")
     private String textContent;
 
