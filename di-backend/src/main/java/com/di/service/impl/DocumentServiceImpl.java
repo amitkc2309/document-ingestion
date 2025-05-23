@@ -27,6 +27,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -46,6 +47,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Async
     @Override
+    @Transactional
     public CompletableFuture<DocumentDTO> uploadDocument(MultipartFile file, String title, String author, String username) {
         try {
             // Get user
@@ -83,6 +85,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    @Transactional
     public DocumentDTO getDocumentById(Long id) {
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
@@ -90,6 +93,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    @Transactional
     public void deleteDocument(Long id, String username) {
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
@@ -107,6 +111,7 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    @Transactional
     public Page<DocumentDTO> searchDocuments(DocumentSearchCriteria criteria, Pageable pageable) {
         return documentRepository.findByMultipleCriteria(
                 criteria.getTitle(),
@@ -119,30 +124,32 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
+    @Transactional
     public Page<DocumentDTO> findByAuthor(String author, Pageable pageable) {
         return documentRepository.findByAuthorContainingIgnoreCase(author, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
+    @Transactional
     public Page<DocumentDTO> findByTitle(String title, Pageable pageable) {
         return documentRepository.findByTitleContainingIgnoreCase(title, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
+    @Transactional
     public Page<DocumentDTO> findByDocumentType(DocumentType documentType, Pageable pageable) {
         return documentRepository.findByDocumentType(documentType, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
+    @Transactional
     public Page<DocumentDTO> findByUploadDateBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         return documentRepository.findByUploadDateBetween(startDate, endDate, pageable)
                 .map(this::mapToDTO);
     }
-
-    // Helper methods
 
     private DocumentDTO mapToDTO(Document document) {
         return DocumentDTO.builder()
