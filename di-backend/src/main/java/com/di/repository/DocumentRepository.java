@@ -35,8 +35,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     Page<Document> searchByContent(@Param("keyword") String keyword, Pageable pageable);
 
     // Combined search for Q&A API (no LOWER() on CLOB field)
-    @Query("SELECT d FROM Document d WHERE " +
-            "d.textContent LIKE CONCAT('%', :keyword, '%') OR " +
+    @Query(value = "SELECT d FROM Document d WHERE " +
+            "d.textContent ILIKE CONCAT('%', :keyword, '%') OR " +
             "LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.author) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Document> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);

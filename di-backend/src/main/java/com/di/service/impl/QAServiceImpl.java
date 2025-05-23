@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,9 +30,9 @@ public class QAServiceImpl implements QAService {
     private final DocumentRepository documentRepository;
     private final DocumentService documentService;
 
-    @Async
     @Override
-    public CompletableFuture<QuestionResponse> processQuestion(QuestionRequest question, Pageable pageable) {
+    @Transactional
+    public QuestionResponse processQuestion(QuestionRequest question,Pageable pageable) {
         log.info("Processing question: {}", question.getQuestion());
 
         // Search for documents containing the keywords
@@ -73,41 +74,7 @@ public class QAServiceImpl implements QAService {
                 .totalResults((int) documents.getTotalElements())
                 .build();
 
-        return CompletableFuture.completedFuture(response);
-    }
-
-    @Override
-    public Page<DocumentDTO> searchByKeyword(String keyword, Pageable pageable) {
-        return documentRepository.searchByKeyword(keyword, pageable)
-                .map(this::mapToDTO);
-    }
-
-    @Override
-    public QuestionResponse extractSnippets(Long documentId, String keyword) {
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found"));
-
-        List<String> extractedSnippets = extractSnippetsFromText(
-                document.getTextContent(), 
-                keyword, 
-                200); // Default snippet length
-
-        List<DocumentSnippet> snippets = new ArrayList<>();
-        for (String snippet : extractedSnippets) {
-            snippets.add(DocumentSnippet.builder()
-                    .documentId(document.getId())
-                    .documentTitle(document.getTitle())
-                    .author(document.getAuthor())
-                    .snippet(snippet)
-                    .relevanceScore(calculateRelevanceScore(snippet, keyword))
-                    .build());
-        }
-
-        return QuestionResponse.builder()
-                .question(keyword)
-                .snippets(snippets)
-                .totalResults(snippets.size())
-                .build();
+        return response;
     }
 
     // Helper methods
