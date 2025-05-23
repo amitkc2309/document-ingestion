@@ -117,8 +117,6 @@ public class DocumentServiceImpl implements DocumentService {
                 criteria.getTitle(),
                 criteria.getAuthor(),
                 criteria.getDocumentType(),
-                criteria.getStartDate(),
-                criteria.getEndDate(),
                 pageable
         ).map(this::mapToDTO);
     }

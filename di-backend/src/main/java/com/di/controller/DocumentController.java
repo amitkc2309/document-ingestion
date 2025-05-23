@@ -66,16 +66,12 @@ public class DocumentController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
             @RequestParam(required = false) DocumentType documentType,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @PageableDefault(size = 10) Pageable pageable) {
 
         DocumentSearchCriteria criteria = DocumentSearchCriteria.builder()
                 .title(title)
                 .author(author)
                 .documentType(documentType)
-                .startDate(startDate)
-                .endDate(endDate)
                 .build();
 
         Page<DocumentDTO> result = documentService.searchDocuments(criteria, pageable);

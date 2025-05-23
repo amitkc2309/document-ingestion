@@ -16,7 +16,5 @@ public class DocumentSearchCriteria {
     private String title;
     private String author;
     private DocumentType documentType;
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
     private String keyword;
 }
