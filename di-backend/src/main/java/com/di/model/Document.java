@@ -39,10 +39,6 @@ public class Document {
     @Column(columnDefinition = "TEXT")
     private String textContent;
 
-    @Lob
-    @Column(columnDefinition = "BYTEA")
-    private byte[] fileContent;
-
     @Column(nullable = false)
     private LocalDateTime uploadDate;
 

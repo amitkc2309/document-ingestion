@@ -66,7 +66,6 @@ public class DocumentServiceImpl implements DocumentService {
                     .fileSize(file.getSize())
                     .author(author)
                     .textContent(textContent)
-                    .fileContent(file.getBytes())
                     .uploadDate(LocalDateTime.now())
                     .uploadedBy(user)
                     .documentType(documentType)
