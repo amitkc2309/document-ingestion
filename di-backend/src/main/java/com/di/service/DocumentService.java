@@ -20,7 +20,7 @@ public interface DocumentService {
      * @param username Username of the uploader
      * @return The uploaded document details
      */
-    CompletableFuture<DocumentDTO> uploadDocument(MultipartFile file, String title, String author, String username);
+    DocumentDTO uploadDocument(MultipartFile file, String title, String author, String username);
     
     /**
      * Get a document by ID

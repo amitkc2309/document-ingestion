@@ -45,10 +45,9 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
 
-    @Async
     @Override
     @Transactional
-    public CompletableFuture<DocumentDTO> uploadDocument(MultipartFile file, String title, String author, String username) {
+    public DocumentDTO uploadDocument(MultipartFile file, String title, String author, String username) {
         try {
             // Get user
             User user = userRepository.findByUsername(username)
@@ -77,7 +76,7 @@ public class DocumentServiceImpl implements DocumentService {
             Document savedDocument = documentRepository.save(document);
 
             // Return DTO
-            return CompletableFuture.completedFuture(mapToDTO(savedDocument));
+            return mapToDTO(savedDocument);
         } catch (IOException e) {
             log.error("Error uploading document", e);
             throw new FileProcessingException(file.getOriginalFilename(), "uploading", e);

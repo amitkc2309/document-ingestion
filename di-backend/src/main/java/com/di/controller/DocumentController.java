@@ -36,14 +36,13 @@ public class DocumentController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload a document", description = "Uploads a new document to the system")
     @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
-    public CompletableFuture<ResponseEntity<DocumentDTO>> uploadDocument(
+    public ResponseEntity<DocumentDTO> uploadDocument(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
             @RequestParam("author") String author,
             Authentication authentication) {
 
-        return documentService.uploadDocument(file, title, author, authentication.getName())
-                .thenApply(ResponseEntity::ok);
+        return ResponseEntity.ok(documentService.uploadDocument(file, title, author, authentication.getName()));
     }
 
     @GetMapping("/{id}")
