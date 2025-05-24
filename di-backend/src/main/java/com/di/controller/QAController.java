@@ -22,7 +22,7 @@ public class QAController {
 
     private final QAService qaService;
 
-    @GetMapping("/ask")
+    @PostMapping("/ask")
     @Operation(summary = "Ask a question", description = "Processes a question and returns relevant document snippets")
     public ResponseEntity<QuestionResponse> askQuestion(
             @Valid @RequestBody QuestionRequest question,
