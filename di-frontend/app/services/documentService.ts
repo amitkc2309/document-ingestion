@@ -1,6 +1,7 @@
 import { DocumentDTO, DocumentType, PageResponse } from '../types/document';
+import config from '../config/config';
 
-const API_URL = 'http://localhost:8080/api/documents';
+const API_URL = `${config.apiUrl}/api/documents`;
 
 export async function uploadDocument(file: File, title: string, author: string, token: string): Promise<DocumentDTO> {
   const formData = new FormData();

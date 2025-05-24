@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../contexts/AuthContext';
 import Button from './ui/Button';
 import Input from './ui/Input';
+import config from '../config/config';
 
 interface QuestionRequest {
   question: string;
@@ -29,6 +30,8 @@ interface QAResponse {
 interface QAForm {
   question: string;
 }
+
+const QA_API_URL = `${config.apiUrl}/api/qa`;
 
 export default function QAInterface() {
   const { token } = useAuth();
@@ -59,7 +62,7 @@ export default function QAInterface() {
         snippetLength: 200
       };
 
-      const res = await fetch(`http://localhost:8080/api/qa/ask?${queryParams}`, {
+      const res = await fetch(`${QA_API_URL}/ask?${queryParams}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
