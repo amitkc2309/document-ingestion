@@ -116,6 +116,12 @@ export default function DocumentsPage() {
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-100 p-6 rounded-lg shadow">
@@ -210,6 +216,7 @@ export default function DocumentsPage() {
                   className="border rounded p-2 text-gray-900 bg-white w-full"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
                 />
               </div>
             )}

@@ -2,46 +2,31 @@ package com.di.service.impl;
 
 import com.di.dto.DocumentDTO;
 import com.di.dto.DocumentProcessingMessage;
-import com.di.dto.DocumentSearchCriteria;
 import com.di.exception.FileProcessingException;
 import com.di.exception.ResourceNotFoundException;
 import com.di.model.Document;
 import com.di.model.DocumentType;
 import com.di.model.ProcessingStatus;
 import com.di.model.User;
+import com.di.model.elasticsearch.DocumentIndex;
 import com.di.repository.DocumentRepository;
 import com.di.repository.UserRepository;
+import com.di.repository.elasticsearch.DocumentIndexRepository;
 import com.di.service.DocumentService;
 import com.di.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.time.LocalDateTime;
-import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -52,6 +37,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final KafkaTemplate<String, DocumentProcessingMessage> kafkaTemplate;
+    private final DocumentIndexRepository documentIndexRepository;
 
     @Value("${application.kafka.topics.document-upload}")
     private String documentUploadTopic;
@@ -149,7 +135,29 @@ public class DocumentServiceImpl implements DocumentService {
             throw new AccessDeniedException("You don't have permission to delete this document");
         }
 
-        documentRepository.delete(document);
+        try {
+            // Delete from Elasticsearch first
+            DocumentIndex documentIndex = documentIndexRepository.findByDatabaseId(id);
+            if (documentIndex != null) {
+                log.info("Deleting document from Elasticsearch. ID: {}", documentIndex.getId());
+                documentIndexRepository.delete(documentIndex);
+            }
+
+            // Delete the file from storage
+            if (document.getFilePath() != null) {
+                log.info("Deleting file from storage: {}", document.getFilePath());
+                fileStorageService.deleteFile(document.getFilePath());
+            }
+
+            // Delete from database
+            log.info("Deleting document from database. ID: {}", id);
+            documentRepository.delete(document);
+            
+            log.info("Document deleted successfully. ID: {}, Title: {}", id, document.getTitle());
+        } catch (Exception e) {
+            log.error("Error during document deletion. ID: {}, Error: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete document completely", e);
+        }
     }
 
     @Override
