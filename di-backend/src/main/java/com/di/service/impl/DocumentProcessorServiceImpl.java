@@ -10,6 +10,7 @@ import com.di.service.DocumentProcessorService;
 import com.di.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.ss.usermodel.Cell;
@@ -49,24 +50,24 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
     @Transactional
     public void processDocument(DocumentProcessingMessage message) {
         log.info("Processing document: {}", message.getDocumentId());
-        
+
         try {
             // Get the document from the database
             Document document = documentRepository.findById(message.getDocumentId())
                     .orElseThrow(() -> new RuntimeException("Document not found: " + message.getDocumentId()));
-            
+
             // Update document status to PROCESSING
             document.setProcessingStatus(ProcessingStatus.PROCESSING);
             documentRepository.save(document);
-            
+
             // Extract text from the document
             String textContent = extractTextFromFile(document.getFilePath());
-            
+
             // Update document with extracted text and status
             document.setProcessingStatus(ProcessingStatus.COMPLETED);
             document.setProcessedDate(LocalDateTime.now());
             documentRepository.save(document);
-            
+
             // Index the document in Elasticsearch
             DocumentIndex documentIndex = DocumentIndex.builder()
                     .id(document.getId().toString())
@@ -78,17 +79,20 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
                     .uploadedBy(document.getUploadedBy().getUsername())
                     .databaseId(document.getId())
                     .build();
-            
+
             documentIndexRepository.save(documentIndex);
-            
+
             // Update document with Elasticsearch ID
             document.setElasticsearchId(documentIndex.getId());
             documentRepository.save(document);
-            
+
+            // Evict all caches to ensure fresh search results
+            evictAllCaches();
+
             log.info("Document processed successfully: {}", document.getId());
         } catch (Exception e) {
             log.error("Error processing document: {}", message.getDocumentId(), e);
-            
+
             try {
                 // Update document status to FAILED
                 Document document = documentRepository.findById(message.getDocumentId()).orElse(null);
@@ -102,7 +106,7 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
             }
         }
     }
-    
+
     /**
      * Extract text from a file.
      *
@@ -114,9 +118,9 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
         if (filePath == null) {
             return "";
         }
-        
+
         String fileName = filePath.toLowerCase();
-        
+
         try (InputStream inputStream = fileStorageService.getFile(filePath)) {
             if (fileName.endsWith(".pdf")) {
                 return extractTextFromPdf(inputStream);
@@ -131,21 +135,21 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
             }
         }
     }
-    
+
     private String extractTextFromPdf(InputStream inputStream) throws IOException {
         try (PDDocument document = PDDocument.load(inputStream)) {
             PDFTextStripper stripper = new PDFTextStripper();
             return stripper.getText(document);
         }
     }
-    
+
     private String extractTextFromDocx(InputStream inputStream) throws IOException {
         try (XWPFDocument document = new XWPFDocument(inputStream)) {
             XWPFWordExtractor extractor = new XWPFWordExtractor(document);
             return extractor.getText();
         }
     }
-    
+
     private String extractTextFromXlsx(InputStream inputStream) throws IOException {
         StringBuilder text = new StringBuilder();
         try (Workbook workbook = new XSSFWorkbook(inputStream)) {
@@ -165,7 +169,7 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
         }
         return text.toString();
     }
-    
+
     private String extractTextFromTxt(InputStream inputStream) throws IOException {
         StringBuilder text = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
@@ -175,5 +179,28 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
             }
         }
         return text.toString();
+    }
+
+    /**
+     * Evict all caches to ensure fresh search results after document updates.
+     * This method is called after a document is indexed in Elasticsearch.
+     */
+    @CacheEvict(value = {
+            "documentTitleSearch", 
+            "documentAuthorSearch", 
+            "documentContentSearch", 
+            "documentTypeSearch", 
+            "documentUploaderSearch", 
+            "documentKeywordSearch", 
+            "questionResponses",
+            "documentById",
+            "documentSearch",
+            "documentByAuthor",
+            "documentByTitle",
+            "documentByType",
+            "documentByDateRange"
+    }, allEntries = true)
+    public void evictAllCaches() {
+        log.info("Evicting all caches to ensure fresh search results");
     }
 }

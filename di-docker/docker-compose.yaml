@@ -53,6 +53,18 @@ services:
         hard: -1
     mem_limit: 2g
 
+  di-redis:
+    image: redis
+    container_name: di-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
+      timeout: 10s
+      retries: 10
+    networks:
+      - di
+
 volumes:
   pgdata:
   esdata:

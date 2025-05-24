@@ -25,6 +25,7 @@ import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -125,7 +126,9 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional
+    //@Cacheable(value = "documentById", key = "#id")
     public DocumentDTO getDocumentById(Long id) {
+        log.info("Fetching document by id: {}", id);
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
         return mapToDTO(document);
@@ -151,7 +154,9 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional
+    //@Cacheable(value = "documentSearch", key = "(#criteria.title != null ? #criteria.title : '') + '_' + (#criteria.author != null ? #criteria.author : '') + '_' + (#criteria.documentType != null ? #criteria.documentType : '') + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> searchDocuments(DocumentSearchCriteria criteria, Pageable pageable) {
+        log.info("Searching documents with criteria: {}", criteria);
         return documentRepository.findByMultipleCriteria(
                 criteria.getTitle(),
                 criteria.getAuthor(),
@@ -162,28 +167,36 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional
+    //@Cacheable(value = "documentByAuthor", key = "#author + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> findByAuthor(String author, Pageable pageable) {
+        log.info("Finding documents by author: {}", author);
         return documentRepository.findByAuthorContainingIgnoreCase(author, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
     @Transactional
+    //@Cacheable(value = "documentByTitle", key = "#title + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> findByTitle(String title, Pageable pageable) {
+        log.info("Finding documents by title: {}", title);
         return documentRepository.findByTitleContainingIgnoreCase(title, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
     @Transactional
+    //@Cacheable(value = "documentByType", key = "#documentType + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> findByDocumentType(DocumentType documentType, Pageable pageable) {
+        log.info("Finding documents by type: {}", documentType);
         return documentRepository.findByDocumentType(documentType, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
     @Transactional
+    //@Cacheable(value = "documentByDateRange", key = "#startDate + '_' + #endDate + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> findByUploadDateBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        log.info("Finding documents by upload date between {} and {}", startDate, endDate);
         return documentRepository.findByUploadDateBetween(startDate, endDate, pageable)
                 .map(this::mapToDTO);
     }
