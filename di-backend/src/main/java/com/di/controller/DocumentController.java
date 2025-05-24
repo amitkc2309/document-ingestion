@@ -5,6 +5,7 @@ import com.di.dto.DocumentSearchCriteria;
 import com.di.dto.PageResponse;
 import com.di.model.DocumentType;
 import com.di.service.DocumentService;
+import com.di.service.SearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final SearchService searchService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload a document", description = "Uploads a new document to the system")
@@ -65,15 +67,17 @@ public class DocumentController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
             @RequestParam(required = false) DocumentType documentType,
-            @PageableDefault(size = 10) Pageable pageable) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
+        Pageable pageable = PageRequest.of(page, size);
         DocumentSearchCriteria criteria = DocumentSearchCriteria.builder()
                 .title(title)
                 .author(author)
                 .documentType(documentType)
                 .build();
+        Page<DocumentDTO> result; result = documentService.searchDocuments(criteria, pageable);
 
-        Page<DocumentDTO> result = documentService.searchDocuments(criteria, pageable);
 
         PageResponse<DocumentDTO> response = new PageResponse<>(
                 result.getContent(),
@@ -163,7 +167,30 @@ public class DocumentController {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<DocumentDTO> result = documentService.findByUploadDateBetween(startDate, endDate, pageable);
+        Page<DocumentDTO> result = documentService.findByUploadDateBetween(startDate,endDate,pageable);
+
+        PageResponse<DocumentDTO> response = new PageResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/by-content")
+    @Operation(summary = "Find documents by content", description = "Searches document content using full-text search")
+    public ResponseEntity<PageResponse<DocumentDTO>> findByContent(
+            @RequestParam String content,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Use Elasticsearch for full-text content search
+        Page<DocumentDTO> result = searchService.searchByContent(content, pageable);
 
         PageResponse<DocumentDTO> response = new PageResponse<>(
                 result.getContent(),

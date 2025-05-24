@@ -31,16 +31,6 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
     // Find documents by uploader
     Page<Document> findByUploadedBy(User uploadedBy, Pageable pageable);
 
-    @Query("SELECT d FROM Document d WHERE d.textContent LIKE CONCAT('%', :keyword, '%')")
-    Page<Document> searchByContent(@Param("keyword") String keyword, Pageable pageable);
-
-    // Combined search for Q&A API (no LOWER() on CLOB field)
-    @Query(value = "SELECT d FROM Document d WHERE " +
-            "d.textContent ILIKE CONCAT('%', :keyword, '%') OR " +
-            "LOWER(d.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(d.author) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<Document> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
-
     // Multi-criteria search
     @Query("SELECT d FROM Document d WHERE " +
             "(:title IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :title, '%'))) AND " +

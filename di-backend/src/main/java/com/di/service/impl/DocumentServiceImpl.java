@@ -1,15 +1,18 @@
 package com.di.service.impl;
 
 import com.di.dto.DocumentDTO;
+import com.di.dto.DocumentProcessingMessage;
 import com.di.dto.DocumentSearchCriteria;
 import com.di.exception.FileProcessingException;
 import com.di.exception.ResourceNotFoundException;
 import com.di.model.Document;
 import com.di.model.DocumentType;
+import com.di.model.ProcessingStatus;
 import com.di.model.User;
 import com.di.repository.DocumentRepository;
 import com.di.repository.UserRepository;
 import com.di.service.DocumentService;
+import com.di.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -21,8 +24,10 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -44,6 +49,11 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
+    private final KafkaTemplate<String, DocumentProcessingMessage> kafkaTemplate;
+
+    @Value("${application.kafka.topics.document-upload}")
+    private String documentUploadTopic;
 
     @Override
     @Transactional
@@ -53,27 +63,57 @@ public class DocumentServiceImpl implements DocumentService {
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
-            // Extract text content based on file type
-            String textContent = extractTextFromFile(file);
-
             // Determine document type
             DocumentType documentType = determineDocumentType(file.getOriginalFilename());
 
-            // Create document entity
+            // Create document entity with PENDING status
             Document document = Document.builder()
                     .title(title)
                     .fileName(file.getOriginalFilename())
                     .contentType(file.getContentType())
                     .fileSize(file.getSize())
                     .author(author)
-                    .textContent(textContent)
                     .uploadDate(LocalDateTime.now())
                     .uploadedBy(user)
                     .documentType(documentType)
+                    .processingStatus(ProcessingStatus.PENDING)
                     .build();
 
-            // Save document
+            // Save document metadata to get an ID
             Document savedDocument = documentRepository.save(document);
+
+            // Store the file in the file system
+            String filePath = fileStorageService.storeFile(file, savedDocument.getId());
+
+            // Update the document with the file path
+            savedDocument.setFilePath(filePath);
+            savedDocument = documentRepository.save(savedDocument);
+
+            // Create a message for Kafka
+            DocumentProcessingMessage message = DocumentProcessingMessage.builder()
+                    .documentId(savedDocument.getId())
+                    .fileName(savedDocument.getFileName())
+                    .contentType(savedDocument.getContentType())
+                    .filePath(savedDocument.getFilePath())
+                    .title(savedDocument.getTitle())
+                    .author(savedDocument.getAuthor())
+                    .uploadedBy(savedDocument.getUploadedBy().getUsername())
+                    .uploadDate(savedDocument.getUploadDate())
+                    .build();
+
+            // Send the message to Kafka for asynchronous processing
+            try {
+                kafkaTemplate.send(documentUploadTopic, savedDocument.getId().toString(), message);
+                log.info("Document processing message sent successfully: {}", savedDocument.getId());
+            } catch (Exception ex) {
+                log.error("Failed to send document processing message: {}", ex.getMessage(), ex);
+                // Update document status to FAILED
+                savedDocument.setProcessingStatus(ProcessingStatus.FAILED);
+                savedDocument.setProcessingError("Failed to queue document for processing: " + ex.getMessage());
+                documentRepository.save(savedDocument);
+            }
+
+            log.info("Document uploaded and queued for processing: {}", savedDocument.getId());
 
             // Return DTO
             return mapToDTO(savedDocument);
@@ -156,79 +196,11 @@ public class DocumentServiceImpl implements DocumentService {
                 .contentType(document.getContentType())
                 .fileSize(document.getFileSize())
                 .author(document.getAuthor())
-                .textContent(document.getTextContent())
                 .uploadDate(document.getUploadDate())
                 .lastModifiedDate(document.getLastModifiedDate())
                 .uploadedBy(document.getUploadedBy().getUsername())
                 .documentType(document.getDocumentType())
                 .build();
-    }
-
-    private String extractTextFromFile(MultipartFile file) throws IOException {
-        String fileName = file.getOriginalFilename();
-        if (fileName == null) {
-            return "";
-        }
-
-        String extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-
-        switch (extension) {
-            case "pdf":
-                return extractTextFromPdf(file);
-            case "docx":
-                return extractTextFromDocx(file);
-            case "xlsx":
-                return extractTextFromXlsx(file);
-            case "txt":
-                return extractTextFromTxt(file);
-            default:
-                return "";
-        }
-    }
-
-    private String extractTextFromPdf(MultipartFile file) throws IOException {
-        try (PDDocument document = PDDocument.load(file.getInputStream())) {
-            PDFTextStripper stripper = new PDFTextStripper();
-            return stripper.getText(document);
-        }
-    }
-
-    private String extractTextFromDocx(MultipartFile file) throws IOException {
-        try (XWPFDocument document = new XWPFDocument(file.getInputStream())) {
-            XWPFWordExtractor extractor = new XWPFWordExtractor(document);
-            return extractor.getText();
-        }
-    }
-
-    private String extractTextFromXlsx(MultipartFile file) throws IOException {
-        StringBuilder text = new StringBuilder();
-        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
-            for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-                Sheet sheet = workbook.getSheetAt(i);
-                Iterator<Row> rowIterator = sheet.iterator();
-                while (rowIterator.hasNext()) {
-                    Row row = rowIterator.next();
-                    Iterator<Cell> cellIterator = row.cellIterator();
-                    while (cellIterator.hasNext()) {
-                        Cell cell = cellIterator.next();
-                        text.append(cell.toString()).append(" ");
-                    }
-                    text.append("\n");
-                }
-            }
-        }
-        return text.toString();
-    }
-
-    private String extractTextFromTxt(MultipartFile file) throws IOException {
-        StringBuilder text = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                text.append(line).append("\n");
-            }
-        }
-        return text.toString();
     }
 
     private DocumentType determineDocumentType(String fileName) {

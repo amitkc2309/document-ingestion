@@ -17,6 +17,24 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+      
+  # Kafka configuration
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: document-processor-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.di.dto
+
+  # Elasticsearch configuration
+  elasticsearch:
+    uris: http://localhost:9200
 
 springdoc:
   api-docs:
@@ -30,4 +48,10 @@ application:
     jwt:
       secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
       expiration: 86400000  # 24 hours
-
+  kafka:
+    topics:
+      document-upload: document-upload-topic
+  elasticsearch:
+    index-name: documents
+  storage:
+    location: ./document-storage

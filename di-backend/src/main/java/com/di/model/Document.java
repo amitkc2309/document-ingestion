@@ -35,15 +35,31 @@ public class Document {
     @Column(nullable = false)
     private String author;
 
-    //@Lob
-    @Column(columnDefinition = "TEXT")
-    private String textContent;
+    // Path to the stored file in the file system
+    @Column
+    private String filePath;
+
+    // Elasticsearch document ID for this document
+    @Column
+    private String elasticsearchId;
+
+    // Processing status for asynchronous processing
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProcessingStatus processingStatus = ProcessingStatus.PENDING;
+
+    // Processing error message if any
+    @Column
+    private String processingError;
 
     @Column(nullable = false)
     private LocalDateTime uploadDate;
 
     @Column
     private LocalDateTime lastModifiedDate;
+
+    @Column
+    private LocalDateTime processedDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by", nullable = false)

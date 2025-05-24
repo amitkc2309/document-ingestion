@@ -5,7 +5,9 @@ import com.di.dto.QuestionRequest;
 import com.di.dto.QuestionResponse;
 import com.di.dto.QuestionResponse.DocumentSnippet;
 import com.di.model.Document;
+import com.di.model.elasticsearch.DocumentIndex;
 import com.di.repository.DocumentRepository;
+import com.di.repository.elasticsearch.DocumentIndexRepository;
 import com.di.service.DocumentService;
 import com.di.service.QAService;
 import lombok.RequiredArgsConstructor;
@@ -27,29 +29,28 @@ import java.util.regex.Pattern;
 @Slf4j
 public class QAServiceImpl implements QAService {
 
-    private final DocumentRepository documentRepository;
-    private final DocumentService documentService;
+    private final DocumentIndexRepository documentIndexRepository;
 
     @Override
     @Transactional
     public QuestionResponse processQuestion(QuestionRequest question,Pageable pageable) {
         log.info("Processing question: {}", question.getQuestion());
 
-        // Search for documents containing the keywords
-        Page<Document> documents = documentRepository.searchByKeyword(question.getQuestion(), pageable);
+        // Search for documents containing the keywords using Elasticsearch
+        Page<DocumentIndex> documents = documentIndexRepository.searchByKeyword(question.getQuestion(), pageable);
 
         // Extract snippets from matching documents
         List<DocumentSnippet> snippets = new ArrayList<>();
         documents.forEach(document -> {
             List<String> extractedSnippets = extractSnippetsFromText(
-                    document.getTextContent(), 
+                    document.getContent(), 
                     question.getQuestion(), 
                     question.getSnippetLength());
 
             // Create a snippet for each match
             for (String snippet : extractedSnippets) {
                 snippets.add(DocumentSnippet.builder()
-                        .documentId(document.getId())
+                        .documentId(document.getDatabaseId())
                         .documentTitle(document.getTitle())
                         .author(document.getAuthor())
                         .snippet(snippet)
@@ -135,19 +136,4 @@ public class QAServiceImpl implements QAService {
         return score;
     }
 
-    private DocumentDTO mapToDTO(Document document) {
-        return DocumentDTO.builder()
-                .id(document.getId())
-                .title(document.getTitle())
-                .fileName(document.getFileName())
-                .contentType(document.getContentType())
-                .fileSize(document.getFileSize())
-                .author(document.getAuthor())
-                .textContent(document.getTextContent())
-                .uploadDate(document.getUploadDate())
-                .lastModifiedDate(document.getLastModifiedDate())
-                .uploadedBy(document.getUploadedBy().getUsername())
-                .documentType(document.getDocumentType())
-                .build();
-    }
 }
