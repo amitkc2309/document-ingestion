@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fullName: response.fullName,
       role: response.role,
     });
+    
+    // Store in localStorage
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify({
       username: response.username,
@@ -75,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fullName: response.fullName,
       role: response.role,
     }));
+
+    // Set cookie
+    document.cookie = `token=${response.token}; path=/; max-age=86400; samesite=strict`;
   };
 
   const login = async (username: string, password: string) => {
@@ -83,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password } as LoginRequest),
+        credentials: 'include', // This is important for cookies
       });
 
       if (!response.ok) {
@@ -127,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
+          credentials: 'include',
         });
       }
     } catch (error) {
@@ -136,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      // Clear the cookie
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       router.push('/login');
     }
   };

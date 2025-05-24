@@ -1,10 +1,11 @@
 'use client';
 
 import { Fragment } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../contexts/AuthContext';
 
 const navigation = [
   { name: 'Documents', href: '/dashboard' },
@@ -22,14 +23,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
 
-  const handleLogout = () => {
-    router.push('/');
-  };
-
-  const user = {
-    email: 'test@example.com',
-    name: 'Test User'
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   return (
@@ -52,7 +54,7 @@ export default function DashboardLayout({
                         href={item.href}
                         className={classNames(
                           'inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium',
-                          item.href === router.pathname
+                          item.href === pathname
                             ? 'border-blue-500 text-gray-900'
                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                         )}
@@ -81,7 +83,7 @@ export default function DashboardLayout({
                         <Menu.Item>
                           {({ active }) => (
                             <div className="px-4 py-2 text-sm text-gray-700">
-                              Signed in as {user.email}
+                              Signed in as {user?.email || user?.username}
                             </div>
                           )}
                         </Menu.Item>
@@ -124,7 +126,7 @@ export default function DashboardLayout({
                     href={item.href}
                     className={classNames(
                       'block border-l-4 py-2 pl-3 pr-4 text-base font-medium',
-                      item.href === router.pathname
+                      item.href === pathname
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700'
                     )}
