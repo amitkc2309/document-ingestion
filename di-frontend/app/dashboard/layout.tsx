@@ -10,7 +10,6 @@ import { useAuth } from '../contexts/AuthContext';
 const navigation = [
   { name: 'Documents', href: '/dashboard' },
   { name: 'Q&A', href: '/dashboard/qa' },
-  { name: 'Ingestion Status', href: '/dashboard/ingestion' },
 ];
 
 function classNames(...classes: string[]) {

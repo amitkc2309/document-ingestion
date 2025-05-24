@@ -82,7 +82,6 @@ http://localhost:8080/swagger-ui.html
 - `GET /api/documents/by-title` - Find documents by title
 - `GET /api/documents/by-type` - Find documents by type
 - `GET /api/documents/by-date-range` - Find documents by date range
-- `GET /api/documents/by-content` - Find documents by content using full-text search
 
 ### Question & Answer
 
