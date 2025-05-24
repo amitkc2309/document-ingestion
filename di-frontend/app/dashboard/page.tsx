@@ -11,6 +11,11 @@ export default function DocumentsPage() {
   const { token } = useAuth();
   const [documents, setDocuments] = useState<DocumentDTO[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    author: '',
+    file: null as File | null
+  });
   const [searchParams, setSearchParams] = useState<DocumentSearchParams>({
     page: 0,
     size: 10
@@ -23,20 +28,40 @@ export default function DocumentsPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (!token) return;
-
     const file = acceptedFiles[0];
     if (!file) return;
+    setUploadForm(prev => ({ ...prev, file }));
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: false
+  });
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !uploadForm.file) return;
+
+    if (!uploadForm.title.trim() || !uploadForm.author.trim()) {
+      toast.error('Title and author are required');
+      return;
+    }
 
     try {
       setLoading(true);
       const result = await documentService.uploadDocument(
-        file,
-        file.name,
-        'Unknown Author',
+        uploadForm.file,
+        uploadForm.title.trim(),
+        uploadForm.author.trim(),
         token
       );
       toast.success('Document uploaded successfully');
+      // Reset form
+      setUploadForm({
+        title: '',
+        author: '',
+        file: null
+      });
       // Refresh the document list
       handleSearch({ ...searchParams, page: 0 });
     } catch (error) {
@@ -45,12 +70,7 @@ export default function DocumentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token, searchParams]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: false
-  });
+  };
 
   const handleSearch = async (params: DocumentSearchParams) => {
     if (!token) return;
@@ -98,19 +118,50 @@ export default function DocumentsPage() {
     <div className="space-y-6">
       <div className="bg-gray-100 p-6 rounded-lg shadow">
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Upload Document</h2>
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed p-8 text-center rounded-lg cursor-pointer ${
-            isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-          }`}
-        >
-          <input {...getInputProps()} />
-          {isDragActive ? (
-            <p className="text-gray-700">Drop the file here...</p>
-          ) : (
-            <p className="text-gray-700">Drag and drop a file here, or click to select a file</p>
-          )}
-        </div>
+        <form onSubmit={handleUpload} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Document Title *"
+              className="border rounded p-2 text-gray-900 bg-white w-full"
+              value={uploadForm.title}
+              onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+              required
+            />
+            <input
+              type="text"
+              placeholder="Author Name *"
+              className="border rounded p-2 text-gray-900 bg-white w-full"
+              value={uploadForm.author}
+              onChange={(e) => setUploadForm(prev => ({ ...prev, author: e.target.value }))}
+              required
+            />
+          </div>
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed p-8 text-center rounded-lg cursor-pointer ${
+              isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+            }`}
+          >
+            <input {...getInputProps()} />
+            {uploadForm.file ? (
+              <p className="text-gray-700">Selected file: {uploadForm.file.name}</p>
+            ) : isDragActive ? (
+              <p className="text-gray-700">Drop the file here...</p>
+            ) : (
+              <p className="text-gray-700">Drag and drop a file here, or click to select a file</p>
+            )}
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={loading || !uploadForm.file || !uploadForm.title.trim() || !uploadForm.author.trim()}
+            >
+              {loading ? 'Uploading...' : 'Upload Document'}
+            </button>
+          </div>
+        </form>
       </div>
 
       <div className="bg-gray-100 p-6 rounded-lg shadow">

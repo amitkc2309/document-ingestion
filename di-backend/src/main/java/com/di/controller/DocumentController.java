@@ -75,7 +75,7 @@ public class DocumentController {
                 .author(author)
                 .documentType(documentType)
                 .build();
-        Page<DocumentDTO> result; result = documentService.searchDocuments(criteria, pageable);
+        Page<DocumentDTO> result = documentService.searchDocuments(criteria, pageable);
 
 
         PageResponse<DocumentDTO> response = new PageResponse<>(
