@@ -37,14 +37,6 @@ public interface DocumentService {
     void deleteDocument(Long id, String username);
     
     /**
-     * Search documents by multiple criteria
-     * @param criteria Search criteria
-     * @param pageable Pagination and sorting information
-     * @return Page of documents matching the criteria
-     */
-    Page<DocumentDTO> searchDocuments(DocumentSearchCriteria criteria, Pageable pageable);
-    
-    /**
      * Search documents by author
      * @param author Author name
      * @param pageable Pagination and sorting information

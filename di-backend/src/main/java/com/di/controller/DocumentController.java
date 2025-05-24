@@ -60,35 +60,6 @@ public class DocumentController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/search")
-    @Operation(summary = "Search documents", description = "Searches documents by multiple criteria with pagination and sorting")
-    public ResponseEntity<PageResponse<DocumentDTO>> searchDocuments(
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String author,
-            @RequestParam(required = false) DocumentType documentType,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        Pageable pageable = PageRequest.of(page, size);
-        DocumentSearchCriteria criteria = DocumentSearchCriteria.builder()
-                .title(title)
-                .author(author)
-                .documentType(documentType)
-                .build();
-        Page<DocumentDTO> result = documentService.searchDocuments(criteria, pageable);
-
-
-        PageResponse<DocumentDTO> response = new PageResponse<>(
-                result.getContent(),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages()
-        );
-
-        return ResponseEntity.ok(response);
-    }
-
     @GetMapping("/by-author")
     @Operation(summary = "Find documents by author", description = "Retrieves documents by author name")
     public ResponseEntity<PageResponse<DocumentDTO>> findByAuthor(

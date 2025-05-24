@@ -154,19 +154,6 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     @Transactional
-    //@Cacheable(value = "documentSearch", key = "(#criteria.title != null ? #criteria.title : '') + '_' + (#criteria.author != null ? #criteria.author : '') + '_' + (#criteria.documentType != null ? #criteria.documentType : '') + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
-    public Page<DocumentDTO> searchDocuments(DocumentSearchCriteria criteria, Pageable pageable) {
-        log.info("Searching documents with criteria: {}", criteria);
-        return documentRepository.findByMultipleCriteria(
-                criteria.getTitle(),
-                criteria.getAuthor(),
-                criteria.getDocumentType(),
-                pageable
-        ).map(this::mapToDTO);
-    }
-
-    @Override
-    @Transactional
     //@Cacheable(value = "documentByAuthor", key = "#author + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> findByAuthor(String author, Pageable pageable) {
         log.info("Finding documents by author: {}", author);

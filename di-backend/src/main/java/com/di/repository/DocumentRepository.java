@@ -30,15 +30,4 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     // Find documents by uploader
     Page<Document> findByUploadedBy(User uploadedBy, Pageable pageable);
-
-    // Multi-criteria search
-    @Query("SELECT d FROM Document d WHERE " +
-            "(:title IS NULL OR LOWER(d.title) LIKE LOWER(CONCAT('%', :title, '%'))) AND " +
-            "(:author IS NULL OR LOWER(d.author) LIKE LOWER(CONCAT('%', :author, '%'))) AND " +
-            "(:documentType IS NULL OR d.documentType = :documentType)")
-    Page<Document> findByMultipleCriteria(
-            @Param("title") String title,
-            @Param("author") String author,
-            @Param("documentType") DocumentType documentType,
-            Pageable pageable);
 }
