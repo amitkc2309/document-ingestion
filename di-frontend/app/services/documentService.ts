@@ -1,4 +1,4 @@
-import { DocumentDTO, DocumentType, PageResponse, DocumentSearchParams } from '../types/document';
+import { DocumentDTO, DocumentType, PageResponse } from '../types/document';
 
 const API_URL = 'http://localhost:8080/api/documents';
 
@@ -50,26 +50,61 @@ export async function deleteDocument(id: number, token: string): Promise<void> {
   }
 }
 
-export async function searchDocuments(params: DocumentSearchParams, token: string): Promise<PageResponse<DocumentDTO>> {
-  const queryParams = new URLSearchParams();
-  
-  if (params.title) queryParams.append('title', params.title);
-  if (params.author) queryParams.append('author', params.author);
-  if (params.documentType) queryParams.append('documentType', params.documentType);
-  if (params.content) queryParams.append('content', params.content);
-  if (params.startDate) queryParams.append('startDate', params.startDate);
-  if (params.endDate) queryParams.append('endDate', params.endDate);
-  queryParams.append('page', String(params.page || 0));
-  queryParams.append('size', String(params.size || 10));
+export async function findByAuthor(author: string, page: number = 0, size: number = 10, token: string): Promise<PageResponse<DocumentDTO>> {
+  const queryParams = new URLSearchParams({
+    author,
+    page: String(page),
+    size: String(size)
+  });
 
-  const response = await fetch(`${API_URL}/search?${queryParams}`, {
+  const response = await fetch(`${API_URL}/by-author?${queryParams}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
 
   if (!response.ok) {
-    throw new Error('Failed to search documents');
+    throw new Error('Failed to fetch documents by author');
+  }
+
+  return response.json();
+}
+
+export async function findByTitle(title: string, page: number = 0, size: number = 10, token: string): Promise<PageResponse<DocumentDTO>> {
+  const queryParams = new URLSearchParams({
+    title,
+    page: String(page),
+    size: String(size)
+  });
+
+  const response = await fetch(`${API_URL}/by-title?${queryParams}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch documents by title');
+  }
+
+  return response.json();
+}
+
+export async function findByDocumentType(documentType: DocumentType, page: number = 0, size: number = 10, token: string): Promise<PageResponse<DocumentDTO>> {
+  const queryParams = new URLSearchParams({
+    documentType,
+    page: String(page),
+    size: String(size)
+  });
+
+  const response = await fetch(`${API_URL}/by-type?${queryParams}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch documents by type');
   }
 
   return response.json();

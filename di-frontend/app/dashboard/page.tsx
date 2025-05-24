@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useAuth } from '../contexts/AuthContext';
-import { DocumentDTO, DocumentType, PageResponse, DocumentSearchParams } from '../types/document';
+import { DocumentDTO, DocumentType } from '../types/document';
 import * as documentService from '../services/documentService';
 import toast from 'react-hot-toast';
 
@@ -16,16 +16,12 @@ export default function DocumentsPage() {
     author: '',
     file: null as File | null
   });
-  const [searchParams, setSearchParams] = useState<DocumentSearchParams>({
-    page: 0,
-    size: 10
-  });
-  const [searchForm, setSearchForm] = useState({
-    title: '',
-    author: '',
-    documentType: ''
-  });
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
+  const [searchType, setSearchType] = useState<'title' | 'author' | 'type'>('title');
+  const [searchValue, setSearchValue] = useState('');
+  const [selectedDocType, setSelectedDocType] = useState<DocumentType>(DocumentType.PDF);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -49,7 +45,7 @@ export default function DocumentsPage() {
 
     try {
       setLoading(true);
-      const result = await documentService.uploadDocument(
+      await documentService.uploadDocument(
         uploadForm.file,
         uploadForm.title.trim(),
         uploadForm.author.trim(),
@@ -63,7 +59,7 @@ export default function DocumentsPage() {
         file: null
       });
       // Refresh the document list
-      handleSearch({ ...searchParams, page: 0 });
+      handleSearch();
     } catch (error) {
       toast.error('Failed to upload document');
       console.error('Upload error:', error);
@@ -72,32 +68,38 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleSearch = async (params: DocumentSearchParams) => {
-    if (!token) return;
+  const handleSearch = async () => {
+    if (!token || (!searchValue && searchType !== 'type')) {
+      if (searchType !== 'type') {
+        toast.error('Please enter a search value');
+      }
+      return;
+    }
 
     try {
       setLoading(true);
-      const response = await documentService.searchDocuments(params, token);
+      let response;
+
+      switch (searchType) {
+        case 'title':
+          response = await documentService.findByTitle(searchValue, currentPage, pageSize, token);
+          break;
+        case 'author':
+          response = await documentService.findByAuthor(searchValue, currentPage, pageSize, token);
+          break;
+        case 'type':
+          response = await documentService.findByDocumentType(selectedDocType, currentPage, pageSize, token);
+          break;
+      }
+
       setDocuments(response.content);
       setTotalPages(response.totalPages);
-      setSearchParams(params);
     } catch (error) {
       toast.error('Failed to search documents');
       console.error('Search error:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSearch({
-      ...searchParams,
-      page: 0,
-      title: searchForm.title,
-      author: searchForm.author,
-      documentType: searchForm.documentType as DocumentType || undefined
-    });
   };
 
   const handleDelete = async (id: number) => {
@@ -107,7 +109,7 @@ export default function DocumentsPage() {
       await documentService.deleteDocument(id, token);
       toast.success('Document deleted successfully');
       // Refresh the document list
-      handleSearch(searchParams);
+      handleSearch();
     } catch (error) {
       toast.error('Failed to delete document');
       console.error('Delete error:', error);
@@ -166,43 +168,63 @@ export default function DocumentsPage() {
 
       <div className="bg-gray-100 p-6 rounded-lg shadow">
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Search Documents</h2>
-        <form onSubmit={handleSearchSubmit} className="space-y-4">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Search by title"
-              className="border rounded p-2 text-gray-900 bg-white w-full"
-              value={searchForm.title}
-              onChange={(e) => setSearchForm(prev => ({ ...prev, title: e.target.value }))}
-            />
-            <input
-              type="text"
-              placeholder="Search by author"
-              className="border rounded p-2 text-gray-900 bg-white w-full"
-              value={searchForm.author}
-              onChange={(e) => setSearchForm(prev => ({ ...prev, author: e.target.value }))}
-            />
-            <select
-              className="border rounded p-2 text-gray-900 bg-white w-full"
-              value={searchForm.documentType}
-              onChange={(e) => setSearchForm(prev => ({ ...prev, documentType: e.target.value }))}
-            >
-              <option value="">All Types</option>
-              {Object.values(DocumentType).map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Search Type</label>
+              <select
+                className="border rounded p-2 text-gray-900 bg-white w-full"
+                value={searchType}
+                onChange={(e) => {
+                  setSearchType(e.target.value as 'title' | 'author' | 'type');
+                  setSearchValue('');
+                }}
+              >
+                <option value="title">By Title</option>
+                <option value="author">By Author</option>
+                <option value="type">By Document Type</option>
+              </select>
+            </div>
+
+            {searchType === 'type' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+                <select
+                  className="border rounded p-2 text-gray-900 bg-white w-full"
+                  value={selectedDocType}
+                  onChange={(e) => setSelectedDocType(e.target.value as DocumentType)}
+                >
+                  {Object.values(DocumentType).map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {searchType === 'title' ? 'Title' : 'Author'}
+                </label>
+                <input
+                  type="text"
+                  placeholder={`Enter ${searchType}...`}
+                  className="border rounded p-2 text-gray-900 bg-white w-full"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="flex items-end">
+              <button
+                onClick={handleSearch}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                disabled={loading}
+              >
+                {loading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
           </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              disabled={loading}
-            >
-              {loading ? 'Searching...' : 'Search'}
-            </button>
-          </div>
-        </form>
+        </div>
 
         <div className="mt-6">
           {loading ? (
@@ -255,9 +277,12 @@ export default function DocumentsPage() {
               {Array.from({ length: totalPages }, (_, i) => (
                 <button
                   key={i}
-                  onClick={() => handleSearch({ ...searchParams, page: i })}
+                  onClick={() => {
+                    setCurrentPage(i);
+                    handleSearch();
+                  }}
                   className={`px-3 py-1 rounded ${
-                    searchParams.page === i
+                    currentPage === i
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-200 text-gray-700'
                   }`}
