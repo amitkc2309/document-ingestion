@@ -1,7 +1,9 @@
 export enum DocumentType {
   PDF = 'PDF',
-  WORD = 'WORD',
-  TEXT = 'TEXT',
+  DOCX = 'DOCX',
+  DOC = 'DOC',
+  TXT = 'TXT',
+  RTF = 'RTF',
   OTHER = 'OTHER'
 }
 

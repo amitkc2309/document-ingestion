@@ -1,5 +1,6 @@
 package com.di.service.impl;
 
+import com.di.config.RedisConfig;
 import com.di.dto.DocumentDTO;
 import com.di.dto.DocumentProcessingMessage;
 import com.di.exception.FileProcessingException;
@@ -17,6 +18,9 @@ import com.di.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -111,27 +115,32 @@ public class DocumentServiceImpl implements DocumentService {
     }
 
     @Override
-    @Transactional
-    //@Cacheable(value = "documentById", key = "#id")
+    @Transactional(readOnly = true)
+    @Cacheable(value = RedisConfig.DOCUMENT_CACHE, key = "#id", unless = "#result == null")
     public DocumentDTO getDocumentById(Long id) {
-        log.info("Fetching document by id: {}", id);
-        Document document = documentRepository.findById(id)
+        log.debug("Fetching document by ID: {}", id);
+        return documentRepository.findById(id)
+                .map(this::mapToDTO)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
-        return mapToDTO(document);
     }
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = RedisConfig.DOCUMENT_CACHE, key = "#id"),
+        @CacheEvict(value = {
+            RedisConfig.DOCUMENTS_BY_AUTHOR_CACHE,
+            RedisConfig.DOCUMENTS_BY_TITLE_CACHE,
+            RedisConfig.DOCUMENTS_BY_TYPE_CACHE
+        }, allEntries = true)
+    })
     public void deleteDocument(Long id, String username) {
+        log.info("Deleting document. ID: {}, Username: {}", id, username);
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
-
-        // Check if user is the uploader or an admin
-        if (!document.getUploadedBy().getId().equals(user.getId()) && 
-                user.getRole() != com.di.model.Role.ADMIN) {
+        // Authorization check
+        if (!document.getUploadedBy().getUsername().equals(username)) {
             throw new AccessDeniedException("You don't have permission to delete this document");
         }
 
@@ -139,57 +148,59 @@ public class DocumentServiceImpl implements DocumentService {
             // Delete from Elasticsearch first
             DocumentIndex documentIndex = documentIndexRepository.findByDatabaseId(id);
             if (documentIndex != null) {
-                log.info("Deleting document from Elasticsearch. ID: {}", documentIndex.getId());
                 documentIndexRepository.delete(documentIndex);
             }
 
             // Delete the file from storage
             if (document.getFilePath() != null) {
-                log.info("Deleting file from storage: {}", document.getFilePath());
                 fileStorageService.deleteFile(document.getFilePath());
             }
 
             // Delete from database
-            log.info("Deleting document from database. ID: {}", id);
             documentRepository.delete(document);
             
-            log.info("Document deleted successfully. ID: {}, Title: {}", id, document.getTitle());
+            log.info("Document deleted successfully. ID: {}", id);
         } catch (Exception e) {
-            log.error("Error during document deletion. ID: {}, Error: {}", id, e.getMessage(), e);
+            log.error("Error deleting document. ID: {}", id, e);
             throw new RuntimeException("Failed to delete document completely", e);
         }
     }
 
     @Override
-    @Transactional
-    //@Cacheable(value = "documentByAuthor", key = "#author + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    /*@Cacheable(value = RedisConfig.DOCUMENTS_BY_AUTHOR_CACHE,
+               key = "#author + '_' + #pageable.pageNumber + '_' + #pageable.pageSize",
+               unless = "#result.content.isEmpty()")*/
     public Page<DocumentDTO> findByAuthor(String author, Pageable pageable) {
-        log.info("Finding documents by author: {}", author);
+        log.debug("Searching documents by author: {}, Page: {}", author, pageable.getPageNumber());
         return documentRepository.findByAuthorContainingIgnoreCase(author, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
-    @Transactional
-    //@Cacheable(value = "documentByTitle", key = "#title + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    /*@Cacheable(value = RedisConfig.DOCUMENTS_BY_TITLE_CACHE,
+               key = "#title + '_' + #pageable.pageNumber + '_' + #pageable.pageSize",
+               unless = "#result.content.isEmpty()")*/
     public Page<DocumentDTO> findByTitle(String title, Pageable pageable) {
-        log.info("Finding documents by title: {}", title);
+        log.debug("Searching documents by title: {}, Page: {}", title, pageable.getPageNumber());
         return documentRepository.findByTitleContainingIgnoreCase(title, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
-    @Transactional
-    //@Cacheable(value = "documentByType", key = "#documentType + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
+    @Transactional(readOnly = true)
+    /*@Cacheable(value = RedisConfig.DOCUMENTS_BY_TYPE_CACHE,
+               key = "#documentType + '_' + #pageable.pageNumber + '_' + #pageable.pageSize",
+               unless = "#result.content.isEmpty()")*/
     public Page<DocumentDTO> findByDocumentType(DocumentType documentType, Pageable pageable) {
-        log.info("Finding documents by type: {}", documentType);
+        log.debug("Searching documents by type: {}, Page: {}", documentType, pageable.getPageNumber());
         return documentRepository.findByDocumentType(documentType, pageable)
                 .map(this::mapToDTO);
     }
 
     @Override
     @Transactional
-    //@Cacheable(value = "documentByDateRange", key = "#startDate + '_' + #endDate + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public Page<DocumentDTO> findByUploadDateBetween(LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         log.info("Finding documents by upload date between {} and {}", startDate, endDate);
         return documentRepository.findByUploadDateBetween(startDate, endDate, pageable)

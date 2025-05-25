@@ -86,9 +86,6 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
             document.setElasticsearchId(documentIndex.getId());
             documentRepository.save(document);
 
-            // Evict all caches to ensure fresh search results
-            evictAllCaches();
-
             log.info("Document processed successfully: {}", document.getId());
         } catch (Exception e) {
             log.error("Error processing document: {}", message.getDocumentId(), e);
@@ -179,28 +176,5 @@ public class DocumentProcessorServiceImpl implements DocumentProcessorService {
             }
         }
         return text.toString();
-    }
-
-    /**
-     * Evict all caches to ensure fresh search results after document updates.
-     * This method is called after a document is indexed in Elasticsearch.
-     */
-    @CacheEvict(value = {
-            "documentTitleSearch", 
-            "documentAuthorSearch", 
-            "documentContentSearch", 
-            "documentTypeSearch", 
-            "documentUploaderSearch", 
-            "documentKeywordSearch", 
-            "questionResponses",
-            "documentById",
-            "documentSearch",
-            "documentByAuthor",
-            "documentByTitle",
-            "documentByType",
-            "documentByDateRange"
-    }, allEntries = true)
-    public void evictAllCaches() {
-        log.info("Evicting all caches to ensure fresh search results");
     }
 }
