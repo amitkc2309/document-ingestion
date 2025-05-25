@@ -1,60 +1,103 @@
 # Document Ingestion System
 
-A comprehensive document management system that allows users to upload, process, search, and query documents of various formats (PDF, DOCX, XLSX, TXT).
+A comprehensive document management system that allows users to upload, process, search, and query documents of various formats (PDF, DOCX, etc.).
 
 ## Features
 
-- **Document Management**: Upload, retrieve, and delete documents
-- **Advanced Search**: Search documents by title, author, type, date range, and content
-- **Question & Answer**: Ask questions about document content and get relevant snippets
-- **Authentication & Authorization**: Secure API with JWT-based authentication and role-based access control
-- **Asynchronous Processing**: Background processing of documents using Kafka
-- **Full-Text Search**: Elasticsearch integration for powerful content search
-- **Caching**: Redis caching for improved performance
+The system is built with a modern, scalable architecture that provides the following features:
 
-## System Architecture
+#### Backend Services (Spring Boot)
+- **Document Management**: 
+  - Upload, retrieve, and delete documents
+  - Secure file storage with metadata tracking
+  - Support for multiple document formats (PDF, DOCX, etc)
+- **Authentication & Authorization**: 
+  - JWT-based authentication and Role-based access control (Admin, Editor, Viewer)
 
-The system consists of the following components:
+#### Search & Processing (Elasticsearch & Kafka)
+  - Full-text search across document content powered by **Elasticsearch**
+  - Search by title, author, and document type
+  - Background document processing via **Kafka**
 
-- **Spring Boot Backend**: RESTful API for document management
-- **PostgreSQL**: Database for storing document metadata and user information
-- **Kafka**: Message broker for asynchronous document processing
-- **Elasticsearch**: Search engine for document content indexing and full-text search
-- **Redis**: Caching layer for improved performance
+#### Data Storage & Caching
+  - Document metadata and User storage in **PostgreSQL Database**
+  - High-performance caching layer using **Redis**
+
+### System Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Next.js   │────▶│  Spring Boot│────▶│ PostgreSQL  │
+│  Frontend   │     │   Backend   │     │  Database   │
+└─────────────┘     └─────────────┘     └─────────────┘
+                          │
+                          │
+                    ┌─────┴─────┐
+                    │           │
+              ┌─────▼─┐   ┌────▼────┐
+              │ Redis │   │  Kafka  │
+              │ Cache │   │ Broker  │
+              └───────┘   └────┬────┘
+                              │
+                        ┌─────▼─────┐
+                        │Elasticsearch│
+                        │   Search   │
+                        └───────────┘
+```
+
+### Frontend
+
+#### 1. Document Upload & Management
+![Document Management Interface](sample/1.jpg)
+*Upload and manage documents with an intuitive interface*
+
+#### 2. Q&A
+![Q&A](sample/2.jpg)
+*Search in documents content*
+
+#### 3. Secirity
+![Security](sample/3.jpg)
 
 ## Prerequisites
 
-- Java 17 or higher
+- Java 21 or higher
 - Maven
 - Docker and Docker Compose
+- Node.js and npm
 
-## Setup Instructions
+## Running on Docker
 
 ### 1. Clone the repository
 
-```bash
-git clone https://github.com/yourusername/document-ingestion.git
-cd document-ingestion
+```
+git clone https://github.com/amitkc2309/document-ingestion
 ```
 
-### 2. Start the infrastructure services
+### 2. Build Image for backend service
 
-```bash
+```
+cd di-backend
+mvn compile jib:dockerBuild
+```
+
+### 3. Build Image for Frontend
+
+```
+cd di-frontend
+docker build --no-cache -t amitking2309/document-ingestion-ui .
+```
+
+### 4. Start the docker services
+
+```
 cd di-docker
 docker-compose up -d
 ```
 
-This will start PostgreSQL, Kafka, Elasticsearch, and Redis services.
+This will start PostgreSQL, Kafka, Elasticsearch, Redis, backend and frontend services.
 
-### 3. Build and run the backend
-
-```bash
-cd ../di-backend
-mvn clean install
-mvn spring-boot:run
-```
-
-The application will be available at http://localhost:8080
+The application will be available at http://localhost:3000  
+Register a user then login to interact with the application.
 
 ## API Documentation
 
@@ -77,24 +120,11 @@ http://localhost:8080/swagger-ui.html
 - `POST /api/documents/upload` - Upload a document (requires ADMIN or EDITOR role)
 - `GET /api/documents/{id}` - Get document by ID
 - `DELETE /api/documents/{id}` - Delete document (requires ADMIN or EDITOR role)
-- `GET /api/documents/search` - Search documents by multiple criteria
 - `GET /api/documents/by-author` - Find documents by author
 - `GET /api/documents/by-title` - Find documents by title
 - `GET /api/documents/by-type` - Find documents by type
-- `GET /api/documents/by-date-range` - Find documents by date range
 
 ### Question & Answer
 
-- `GET /api/qa/ask` - Ask a question and get relevant document snippets
-
-## Configuration
-
-The application can be configured through the `application.yaml` file. Key configuration options include:
-
-- Database connection settings
-- Kafka configuration
-- Elasticsearch settings
-- Redis cache configuration
-- JWT security settings
-- File storage location
+- `POST /api/qa/ask` - Ask a question and get relevant document snippets
 
