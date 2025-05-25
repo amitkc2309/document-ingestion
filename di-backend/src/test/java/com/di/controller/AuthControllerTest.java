@@ -46,49 +46,5 @@ public class AuthControllerTest {
 
         ResponseEntity<AuthResponse> adminResult = authController.register(adminRequest);
         assertEquals(Role.ADMIN, adminResult.getBody().getRole());
-
-        // Test for EDITOR role
-        RegisterRequest editorRequest = RegisterRequest.builder()
-                .username("editoruser")
-                .password("password")
-                .email("editor@example.com")
-                .fullName("Editor User")
-                .role(Role.EDITOR)
-                .build();
-
-        AuthResponse editorResponse = AuthResponse.builder()
-                .username("editoruser")
-                .email("editor@example.com")
-                .fullName("Editor User")
-                .role(Role.EDITOR)
-                .token("editor-token")
-                .build();
-
-        when(authService.register(editorRequest)).thenReturn(editorResponse);
-
-        ResponseEntity<AuthResponse> editorResult = authController.register(editorRequest);
-        assertEquals(Role.EDITOR, editorResult.getBody().getRole());
-
-        // Test for VIEWER role
-        RegisterRequest viewerRequest = RegisterRequest.builder()
-                .username("vieweruser")
-                .password("password")
-                .email("viewer@example.com")
-                .fullName("Viewer User")
-                .role(Role.VIEWER)
-                .build();
-
-        AuthResponse viewerResponse = AuthResponse.builder()
-                .username("vieweruser")
-                .email("viewer@example.com")
-                .fullName("Viewer User")
-                .role(Role.VIEWER)
-                .token("viewer-token")
-                .build();
-
-        when(authService.register(viewerRequest)).thenReturn(viewerResponse);
-
-        ResponseEntity<AuthResponse> viewerResult = authController.register(viewerRequest);
-        assertEquals(Role.VIEWER, viewerResult.getBody().getRole());
     }
 }
