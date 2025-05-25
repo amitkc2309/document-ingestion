@@ -110,3 +110,17 @@ export async function findByDocumentType(documentType: DocumentType, page: numbe
 
   return response.json();
 }
+
+export async function downloadDocument(id: number, token: string): Promise<Blob> {
+  const response = await fetch(`${API_URL}/${id}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download document');
+  }
+
+  return response.blob();
+}

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DocumentDTO, DocumentType } from '../types/document';
 import * as documentService from '../services/documentService';
 import toast from 'react-hot-toast';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
 export default function DocumentsPage() {
   const { token } = useAuth();
@@ -119,6 +120,25 @@ export default function DocumentsPage() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch();
+    }
+  };
+
+  const handleDownload = async (id: number, fileName: string) => {
+    if (!token) return;
+
+    try {
+      const blob = await documentService.downloadDocument(id, token);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      toast.error('Failed to download document');
+      console.error('Download error:', error);
     }
   };
 
@@ -257,7 +277,14 @@ export default function DocumentsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-gray-900">
                         {new Date(doc.uploadDate).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap flex space-x-4">
+                        <button
+                          onClick={() => handleDownload(doc.id, doc.fileName)}
+                          className="text-blue-600 hover:text-blue-900 flex items-center"
+                          title="Download Document"
+                        >
+                          <ArrowDownTrayIcon className="h-5 w-5" />
+                        </button>
                         <button
                           onClick={() => handleDelete(doc.id)}
                           className="text-red-600 hover:text-red-900"

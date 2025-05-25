@@ -204,6 +204,7 @@ public class DocumentServiceImpl implements DocumentService {
                 .contentType(document.getContentType())
                 .fileSize(document.getFileSize())
                 .author(document.getAuthor())
+                .filePath(document.getFilePath())
                 .uploadDate(document.getUploadDate())
                 .lastModifiedDate(document.getLastModifiedDate())
                 .uploadedBy(document.getUploadedBy().getUsername())

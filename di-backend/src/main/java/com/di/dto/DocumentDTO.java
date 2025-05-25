@@ -19,6 +19,7 @@ public class DocumentDTO {
     private String contentType;
     private Long fileSize;
     private String author;
+    private String filePath;
     private String textContent;
     private LocalDateTime uploadDate;
     private LocalDateTime lastModifiedDate;
