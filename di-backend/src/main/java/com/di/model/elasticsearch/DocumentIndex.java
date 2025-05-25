@@ -24,11 +24,11 @@ public class DocumentIndex {
 
     @Id
     private String id;
-    @Field(type = FieldType.Text, analyzer = "standard")
+    @Field(type = FieldType.Text, analyzer = "english")
     private String title;
-    @Field(type = FieldType.Text, analyzer = "standard")
+    @Field(type = FieldType.Text, analyzer = "english")
     private String author;
-    @Field(type = FieldType.Text, analyzer = "standard")
+    @Field(type = FieldType.Text, analyzer = "english")
     private String content;
     @Field(type = FieldType.Keyword)
     private String fileName;

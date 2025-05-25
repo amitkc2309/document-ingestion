@@ -37,7 +37,10 @@ public class QAServiceImpl implements QAService {
 
         Query multiMatchQuery = MultiMatchQuery.of(m -> m
                 .query(question.getQuestion())
-                .fields("title", "author", "content")
+                .fields("title^3", "author^2", "content")
+                .fuzziness("AUTO")
+                .prefixLength(3)
+                .maxExpansions(10)
         )._toQuery();
 
         // Create NativeQuery using the query above
