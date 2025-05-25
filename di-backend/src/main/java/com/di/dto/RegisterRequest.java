@@ -34,5 +34,5 @@ public class RegisterRequest {
     private String fullName;
 
     @Builder.Default
-    private Role role = Role.VIEWER; // Default role is VIEWER
+    private Role role = Role.EDITOR;
 }

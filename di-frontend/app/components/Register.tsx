@@ -28,7 +28,7 @@ export default function Register() {
       setError(null);
       await registerUser({
         ...data,
-        role: 'VIEWER' // Default role
+        role: 'EDITOR' // Default role
       });
     } catch (err) {
       setError('Registration failed. Please try again.');
