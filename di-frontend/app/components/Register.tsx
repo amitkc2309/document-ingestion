@@ -20,7 +20,7 @@ export default function Register() {
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>();
 
   const onSubmit = async (data: RegisterFormData) => {
@@ -47,21 +47,45 @@ export default function Register() {
           <div className="rounded-md shadow-sm space-y-4">
             <Input
               label="Username"
-              {...register('username')}
+              error={errors.username?.message}
+              {...register('username', {
+                required: 'Username is required',
+                minLength: {
+                  value: 3,
+                  message: 'Username must be at least 3 characters'
+                }
+              })}
             />
             <Input
               label="Full Name"
-              {...register('fullName')}
+              error={errors.fullName?.message}
+              {...register('fullName', {
+                required: 'Full name is required'
+              })}
             />
             <Input
               label="Email"
               type="email"
-              {...register('email')}
+              error={errors.email?.message}
+              {...register('email', {
+                required: 'Email is required',
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Invalid email address'
+                }
+              })}
             />
             <Input
               label="Password"
               type="password"
-              {...register('password')}
+              error={errors.password?.message}
+              {...register('password', {
+                required: 'Password is required',
+                minLength: {
+                  value: 5,
+                  message: 'Password must be at least 5 characters'
+                }
+              })}
             />
           </div>
 

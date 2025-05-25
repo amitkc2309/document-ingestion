@@ -18,7 +18,7 @@ export default function Login() {
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { errors, isSubmitting },
   } = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
@@ -42,12 +42,26 @@ export default function Login() {
           <div className="rounded-md shadow-sm space-y-4">
             <Input
               label="Username"
-              {...register('username')}
+              error={errors.username?.message}
+              {...register('username', {
+                required: 'Username is required',
+                minLength: {
+                  value: 3,
+                  message: 'Username must be at least 3 characters'
+                }
+              })}
             />
             <Input
               label="Password"
               type="password"
-              {...register('password')}
+              error={errors.password?.message}
+              {...register('password', {
+                required: 'Password is required',
+                minLength: {
+                  value: 5,
+                  message: 'Password must be at least 5 characters'
+                }
+              })}
             />
           </div>
 
