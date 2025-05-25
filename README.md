@@ -1,6 +1,6 @@
 # Document Ingestion System
 
-A comprehensive document management system that allows users to upload, process, search, and query documents of various formats (PDF, DOCX, etc.).
+A comprehensive document management system that allows users to upload, process, search and manage documents of various formats (PDF, DOCX, etc.).
 
 ## Features
 
@@ -12,7 +12,7 @@ The system is built with a modern, scalable architecture that provides the follo
   - Secure file storage with metadata tracking
   - Support for multiple document formats (PDF, DOCX, etc)
 - **Authentication & Authorization**: 
-  - JWT-based authentication and Role-based access control (Admin, Editor, Viewer)
+  - JWT-based authentication and Role-based access control
 
 #### Search & Processing (Elasticsearch & Kafka)
   - Full-text search across document content powered by **Elasticsearch**
@@ -26,23 +26,30 @@ The system is built with a modern, scalable architecture that provides the follo
 ### System Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Next.js   │────▶│  Spring Boot│────▶│ PostgreSQL  │
-│  Frontend   │     │   Backend   │     │  Database   │
-└─────────────┘     └─────────────┘     └─────────────┘
-                          │
-                          │
-                    ┌─────┴─────┐
-                    │           │
-              ┌─────▼─┐   ┌────▼────┐
-              │ Redis │   │  Kafka  │
-              │ Cache │   │ Broker  │
-              └───────┘   └────┬────┘
-                              │
-                        ┌─────▼─────┐
-                        │Elasticsearch│
-                        │   Search   │
-                        └───────────┘
+                         ┌───────────────────┐
+                         │     Next.js       │
+                         │     Frontend      │
+                         └────────┬──────────┘
+                                  │
+                                  ▼
+                         ┌───────────────────┐
+                         │   Spring Boot     │
+                         │     Backend       │
+                         └────────┬──────────┘
+                                  │
+       ┌──────────────────────────┼────────────────────────┐
+       ▼                          ▼                        ▼
+┌─────────────┐        ┌───────────────────┐       ┌────────────────────┐
+│   Redis     │        │     Kafka         │       │                    │
+│   Cache     │        │   Message Broker  │       │                    │
+└────┬────────┘        └─────────┬─────────┘       │                    │
+     │                           │                 │   Elasticsearch    │
+     ▼                           ▼                 │                    │
+┌─────────────┐           ┌───────────────┐        │                    │
+│ PostgreSQL  │           │ KafkaListener │────────▶                    │
+│  Database   │           │ (Async Logic) │        └────────────────────┘
+└─────────────┘           └───────────────┘
+
 ```
 
 ### Frontend
