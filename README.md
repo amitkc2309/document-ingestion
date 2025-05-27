@@ -62,7 +62,7 @@ The system is built with a modern, scalable architecture that provides the follo
 ![Q&A](sample/2.jpg)
 *Search in documents content*
 
-#### 3. Secirity
+#### 3. Security
 ![Security](sample/3.jpg)
 
 ## Prerequisites
