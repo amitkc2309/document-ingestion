@@ -60,7 +60,7 @@ export default function DocumentsPage() {
         file: null
       });
       // Refresh the document list
-      handleSearch();
+      //handleSearch();
     } catch (error) {
       toast.error('Failed to upload document');
       console.error('Upload error:', error);
