@@ -1,4 +1,4 @@
-# Document Ingestion System
+# Document Management System
 
 A comprehensive document management system that allows users to upload, process, search and manage documents of various formats (PDF, DOCX, etc.).
 
